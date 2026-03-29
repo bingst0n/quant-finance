@@ -99,7 +99,7 @@ def get_current_holdings(tickers):
     current = {}
     for ticker in tickers:
         if ticker in holdings:
-            current[ticker] = float(holdings[ticker]['equity_value'])
+            current[ticker] = float(holdings[ticker]['equity'])
         else:
             current[ticker] = 0.0
     return current
