@@ -40,6 +40,7 @@ ALLOCATION_ENV = os.getenv('ALLOCATION_AMOUNT', 'portfolio')
 
 MIN_ORDER_DOLLARS = 1.0   # ignore deltas smaller than this to avoid tiny orders
 SLEEP_BETWEEN_ORDERS = 2  # seconds to wait between API calls
+RESERVE_PCT = 0.05        # reserve 5% of portfolio for taxes and stability
 
 NOTIFICATION_WEBHOOK_URL = os.getenv('NOTIFICATION_WEBHOOK_URL', '')
 
@@ -86,7 +87,7 @@ def get_predictions():
 def get_allocation_amount():
     if ALLOCATION_ENV.lower() == 'portfolio':
         profile = rh.profiles.load_portfolio_profile()
-        amount = float(profile['equity'])
+        amount = float(profile['equity']) * (1 - RESERVE_PCT) - 10.00
     else:
         amount = float(ALLOCATION_ENV)
     log.info(f"Allocation amount: ${amount:.2f}")
@@ -159,10 +160,30 @@ def rebalance(predictions, allocation_amount):
     log.info("Rebalance complete.")
 
 
+LOCKFILE = os.path.join(PROJECT_DIR, '.last_run_date')
+
+def already_ran_today() -> bool:
+    today = str(pd.Timestamp.now().date())
+    if os.path.exists(LOCKFILE):
+        with open(LOCKFILE) as f:
+            return f.read().strip() == today
+    return False
+
+def mark_ran_today() -> None:
+    with open(LOCKFILE, 'w') as f:
+        f.write(str(pd.Timestamp.now().date()))
+
+
 def main():
     log.info("=" * 60)
     log.info("Weekly rebalance starting")
     print("Weekly rebalance starting...")
+
+    if already_ran_today():
+        msg = "Rebalance already ran today — skipping to avoid day trades."
+        log.warning(msg)
+        print(msg)
+        return
 
     try:
         login()
@@ -174,6 +195,7 @@ def main():
         print(f"\nManaging ${allocation_amount:.2f}")
 
         rebalance(predictions, allocation_amount)
+        mark_ran_today()
         send_notification(
             "Portfolio rebalanced",
             f"Weekly rebalance complete. Managing ${allocation_amount:.2f}.",
