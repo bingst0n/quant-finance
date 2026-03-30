@@ -34,55 +34,65 @@ def train_model(data):
     X = data[['lag1', 'lag2', 'vol12', 'mom12', 'drawdown', 'sma']].values
     y = data['real'].values
     
-    # STANDARDIZE FEATURES (CRUCIAL FOR GENERALIZATION)
+    # TRAIN/TEST SPLIT (80/20 chronological)
+    split = int(len(X) * 0.8)
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+
+    # STANDARDIZE FEATURES using train set only
     print("Standardizing features...")
-    mean = X.mean(axis=0)  # shape (6,)
-    std = X.std(axis=0) + 1e-8  # add small epsilon to avoid division by zero
-    X_normalized = (X - mean) / std
-    
+    mean = X_train.mean(axis=0)
+    std = X_train.std(axis=0) + 1e-8
+    X_train_norm = (X_train - mean) / std
+    X_test_norm = (X_test - mean) / std
+
     print(f"Feature means: {mean}")
     print(f"Feature stds: {std}")
-    
-    total_rows = len(X_normalized)
-    num_batches = (total_rows + BATCH_SIZE - 1) // BATCH_SIZE  # Ceiling division
-    
+    print(f"Train samples: {len(X_train)}, Test samples: {len(X_test)}")
+
+    total_rows = len(X_train_norm)
+    num_batches = (total_rows + BATCH_SIZE - 1) // BATCH_SIZE
+
     print(f"Training with batch size {BATCH_SIZE} ({num_batches} batches)")
-    
+
     # Train in mini-batches
     total_loss = 0
     batch_count = 0
-    
+
     for batch_idx in range(num_batches):
-        # Reset gradient accumulators for new batch
         reset_gradient_accumulators()
-        
-        # Get batch boundaries
+
         start_idx = batch_idx * BATCH_SIZE
         end_idx = min(start_idx + BATCH_SIZE, total_rows)
         batch_actual_size = end_idx - start_idx
-        
-        # Accumulate gradients over batch
+
         batch_loss = 0
         for i in range(start_idx, end_idx):
-            loss = Train(X_normalized[i].tolist(), y[i])
+            loss = Train(X_train_norm[i].tolist(), y_train[i])
             batch_loss += loss
             total_loss += loss
-        
-        # Apply accumulated gradients (averaged over batch)
+
         apply_accumulated_gradients()
         batch_count += 1
-        
-        # Dynamic progress update
+
         samples_processed = end_idx
         percentage = (samples_processed / total_rows) * 100
         avg_batch_loss = batch_loss / batch_actual_size
         print(f"\rTRAINING ({percentage:.1f}%, batch {batch_count}/{num_batches}, batch_loss={avg_batch_loss:.6f})", end='', flush=True)
 
-    avg_loss = total_loss / total_rows
-    print(f"\n\nTraining complete! Average Loss: {avg_loss:.6f}")
-    
-    # Return normalization parameters along with loss
-    return avg_loss, mean, std
+    avg_train_loss = total_loss / total_rows
+
+    # Evaluate on test set (forward pass only, no weight updates)
+    from training import forwardPropagate, computeLoss
+    test_loss = 0
+    for i in range(len(X_test_norm)):
+        logit = forwardPropagate(X_test_norm[i].tolist())
+        test_loss += (0.5) * (y_test[i] - logit) ** 2
+    avg_test_loss = test_loss / len(X_test_norm)
+
+    print(f"\n\nTraining complete! Train Loss: {avg_train_loss:.6f} | Test Loss: {avg_test_loss:.6f}")
+
+    return avg_train_loss, mean, std
 
 def save_trained_model(ticker, period, mean, std):
     """Save trained weights and biases to models/TICKER_PERIOD"""

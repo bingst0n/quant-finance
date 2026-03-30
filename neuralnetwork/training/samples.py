@@ -16,10 +16,10 @@ def prepare_samples(ticker, period):
     
     # Create information DataFrame
     information = pd.DataFrame(index=rets.index, columns=['real', 'lag1', 'lag2', 'vol12', 'mom12', 'drawdown', 'sma'])
-    information['real'] = rets.shift(0)
+    information['real'] = rets.shift(-1)
     information['lag1'] = rets.shift(1)
     information['lag2'] = information['lag1'].shift(1)
-    information['vol12'] = rets.rolling(12).std()
+    information['vol12'] = rets.shift(1).rolling(12).std()
     information['mom12'] = prices / prices.shift(12) - 1
     
     # Calculate drawdown
