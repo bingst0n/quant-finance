@@ -1,0 +1,12 @@
+2026-04-01 09:49:23,682  INFO  ============================================================
+2026-04-01 09:49:23,683  INFO  Weekly rebalance starting
+2026-04-01 09:49:23,684  ERROR  Rebalance failed: 'ROBINHOOD_USERNAME'
+Traceback (most recent call last):
+  File "/Users/harrisongreen/coding/quant-finance/run_weekly.py", line 189, in main
+    login()
+    ~~~~~^^
+  File "/Users/harrisongreen/coding/quant-finance/run_weekly.py", line 73, in login
+    username = os.environ['ROBINHOOD_USERNAME']
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen os>", line 709, in __getitem__
+KeyError: 'ROBINHOOD_USERNAME'

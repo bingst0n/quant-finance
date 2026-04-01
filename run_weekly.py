@@ -174,13 +174,13 @@ def mark_ran_today() -> None:
         f.write(str(pd.Timestamp.now().date()))
 
 
-def main():
+def main(force: bool = False):
     log.info("=" * 60)
     log.info("Weekly rebalance starting")
     print("Weekly rebalance starting...")
 
-    if already_ran_today():
-        msg = "Rebalance already ran today — skipping to avoid day trades."
+    if already_ran_today() and not force:
+        msg = "Rebalance already ran today — skipping to avoid day trades. Use --force to override."
         log.warning(msg)
         print(msg)
         return
@@ -209,4 +209,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--force', action='store_true', help='Override the day trade lockfile')
+    args = parser.parse_args()
+    main(force=args.force)
