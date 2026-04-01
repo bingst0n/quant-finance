@@ -141,7 +141,8 @@ def rebalance(predictions, allocation_amount):
             amount = abs(delta)
             print(f"  SELL ${amount:.2f} of {ticker}")
             log.info(f"SELL ${amount:.2f} of {ticker}")
-            rh.order_sell_fractional_by_price(ticker, amount, timeInForce='gfd', extendedHours=False)
+            result = rh.order_sell_fractional_by_price(ticker, amount, timeInForce='gfd', extendedHours=False)
+            log.info(f"SELL response for {ticker}: {result}")
             time.sleep(SLEEP_BETWEEN_ORDERS)
 
     # Brief pause before buying
@@ -153,7 +154,8 @@ def rebalance(predictions, allocation_amount):
         if delta > MIN_ORDER_DOLLARS:
             print(f"  BUY  ${delta:.2f} of {ticker}")
             log.info(f"BUY ${delta:.2f} of {ticker}")
-            rh.order_buy_fractional_by_price(ticker, delta, timeInForce='gfd', extendedHours=False)
+            result = rh.order_buy_fractional_by_price(ticker, delta, timeInForce='gfd', extendedHours=False)
+            log.info(f"BUY response for {ticker}: {result}")
             time.sleep(SLEEP_BETWEEN_ORDERS)
 
     print("\nRebalance complete.")
